@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rutas que FileProvider puede compartir con otras apps (MainActivity.shareFile).
+     external-path "." = todo el almacenamiento compartido (/storage/emulated/0),
+     donde están las carpetas de música. -->
+<paths>
+    <external-path name="storage" path="." />
+</paths>

@@ -46,7 +46,7 @@ class _HomeShellState extends State<HomeShell> {
       if (!mounted) return;
       showMessage(context, 'No se pudo reproducir: ${e.message ?? e.code}');
     });
-    library.restore();
+    library.start();
     NativeBridge.listenSharedText(_onSharedText);
   }
 

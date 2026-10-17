@@ -65,4 +65,48 @@ object StorageFolders {
         }
         return name
     }
+
+    /**
+     * Renombra [filePath] (que está dentro de la carpeta [treeUri]) a
+     * [newName]. Devuelve el nombre final que asignó el sistema.
+     */
+    fun rename(context: Context, treeUri: Uri, folderPath: String, filePath: String, newName: String): String {
+        val document = documentUri(treeUri, folderPath, filePath)
+        val renamed = DocumentsContract.renameDocument(context.contentResolver, document, newName)
+            ?: throw IOException("No se pudo renombrar el archivo")
+        context.contentResolver.query(
+            renamed,
+            arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME),
+            null,
+            null,
+            null,
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) return cursor.getString(0)
+        }
+        return newName
+    }
+
+    /** Elimina [filePath], que está dentro de la carpeta [treeUri]. */
+    fun delete(context: Context, treeUri: Uri, folderPath: String, filePath: String) {
+        val document = documentUri(treeUri, folderPath, filePath)
+        if (!DocumentsContract.deleteDocument(context.contentResolver, document)) {
+            throw IOException("No se pudo eliminar el archivo")
+        }
+    }
+
+    /**
+     * URI SAF de un archivo dentro de la carpeta. El proveedor de
+     * almacenamiento local identifica cada documento como
+     * "<volumen>:<ruta relativa>", p. ej. "primary:TikTok Gym/audio.m4a".
+     */
+    private fun documentUri(treeUri: Uri, folderPath: String, filePath: String): Uri {
+        val treeDocId = DocumentsContract.getTreeDocumentId(treeUri)
+        val docId = if (treeDocId.startsWith("raw:")) {
+            "raw:$filePath"
+        } else {
+            val relative = File(filePath).relativeTo(File(folderPath)).path
+            if (treeDocId.endsWith(":")) "$treeDocId$relative" else "$treeDocId/$relative"
+        }
+        return DocumentsContract.buildDocumentUriUsingTree(treeUri, docId)
+    }
 }

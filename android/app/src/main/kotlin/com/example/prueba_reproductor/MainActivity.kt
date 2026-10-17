@@ -1,11 +1,13 @@
 package com.example.prueba_reproductor
 
+import android.content.ClipData
 import android.content.Intent
 import android.media.MediaMetadataRetriever
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -102,6 +104,33 @@ class MainActivity : AudioServiceActivity() {
                         val mime = call.argument<String>("mime")!!
                         inBackground(result) { StorageFolders.copyInto(this, treeUri, source, name, mime) }
                     }
+                    "renameInFolder" -> {
+                        val treeUri = Uri.parse(call.argument<String>("treeUri")!!)
+                        val folder = call.argument<String>("folder")!!
+                        val path = call.argument<String>("path")!!
+                        val newName = call.argument<String>("newName")!!
+                        inBackground(result) { StorageFolders.rename(this, treeUri, folder, path, newName) }
+                    }
+                    "deleteFromFolder" -> {
+                        val treeUri = Uri.parse(call.argument<String>("treeUri")!!)
+                        val folder = call.argument<String>("folder")!!
+                        val path = call.argument<String>("path")!!
+                        inBackground(result) { StorageFolders.delete(this, treeUri, folder, path) }
+                    }
+                    "shareFile" -> {
+                        val path = call.argument<String>("path")!!
+                        val mime = call.argument<String>("mime")!!
+                        try {
+                            shareFile(File(path), mime)
+                            result.success(null)
+                        } catch (e: Exception) {
+                            result.error("SHARE_FAILED", e.message, null)
+                        }
+                    }
+                    "measureLoudness" -> {
+                        val paths = call.argument<List<String>>("paths")!!
+                        inBackground(result) { paths.map(LoudnessAnalyzer::measure) }
+                    }
                     "extractAudio" -> {
                         val input = call.argument<String>("input")!!
                         val output = call.argument<String>("output")!!
@@ -175,6 +204,23 @@ class MainActivity : AudioServiceActivity() {
                 runOnUiThread { result.error("NATIVE_ERROR", e.message, null) }
             }
         }.start()
+    }
+
+    /**
+     * Abre el menú "Compartir" del sistema con [file]. FileProvider genera una
+     * URI content:// temporal; la app que lo reciba solo puede leer ese archivo.
+     */
+    private fun shareFile(file: File, mime: String) {
+        val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = mime
+            putExtra(Intent.EXTRA_STREAM, uri)
+            // ClipData hace que el permiso de lectura llegue también a la app
+            // elegida en el menú (no solo al propio menú).
+            clipData = ClipData.newRawUri(file.name, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(Intent.createChooser(send, null))
     }
 
     private fun settings() = getSharedPreferences("app_settings", MODE_PRIVATE)

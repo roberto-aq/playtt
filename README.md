@@ -27,11 +27,14 @@ La app lee los audios de una carpeta del teléfono y los reproduce con controles
 - Elección de la carpeta de música con el selector del sistema; la app la recuerda entre sesiones.
 - Búsqueda recursiva de audios (`.mp3`, `.m4a`, `.aac`, `.wav`, `.ogg`, `.oga`, `.opus`, `.flac`).
 - Lista ordenada por fecha (más recientes primero), con duración y fecha de cada audio.
+- Búsqueda que ignora mayúsculas y tildes.
+- **Mantén pulsada una canción** para renombrarla, compartirla con otra app o eliminarla.
 
 ### Reproducción
 - Reproducción en segundo plano.
 - **Controles del sistema:** notificación con anterior / pausa / siguiente, pantalla de bloqueo y botones de auriculares Bluetooth o con cable.
 - Mini reproductor flotante y reproductor a pantalla completa con barra de progreso, modo aleatorio y repetición (todo / una).
+- **Nivelación de volumen:** iguala el volumen entre audios para que ninguno suene mucho más fuerte o más bajo que otro (se puede desactivar en Configuración).
 
 ### Descarga desde TikTok
 - **Desde el menú Compartir de TikTok:** *Compartir* → **Reproductor**, y la app se abre con el video ya procesado.
@@ -92,13 +95,18 @@ lib/
 ├── library_screen.dart       Pestaña Biblioteca
 ├── downloader_screen.dart    Pestaña Descargar
 ├── settings_screen.dart      Pestaña Configuración
+├── track_actions.dart        Menú de una canción: renombrar, compartir, eliminar
+├── volume_normalizer.dart    Nivelación de volumen (caché y compensación)
 ├── mini_player.dart          Barra de reproducción flotante
 └── player_screen.dart        Reproductor a pantalla completa
 
 android/app/src/main/kotlin/com/example/prueba_reproductor/
 ├── MainActivity.kt           Canal "prueba_reproductor/media" y selector de carpetas
 ├── AudioExtractor.kt         Extracción de audio MP4 → M4A (MediaExtractor + MediaMuxer)
-└── StorageFolders.kt         Conversión URI SAF ↔ ruta y escritura en carpetas SAF
+├── LoudnessAnalyzer.kt       Medición de sonoridad (para la nivelación de volumen)
+└── StorageFolders.kt         URI SAF ↔ ruta; crear, renombrar y eliminar en carpetas SAF
+
+test/                         Pruebas unitarias (flutter test)
 
 docs/                         Documentación técnica (ver abajo)
 ```
@@ -115,6 +123,7 @@ docs/                         Documentación técnica (ver abajo)
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Errores conocidos y cómo resolverlos |
 | [docs/adr/](docs/adr/README.md) | Registro de decisiones de arquitectura |
 | [docs/guides/recibir-contenido-compartido.md](docs/guides/recibir-contenido-compartido.md) | Guía de estudio: cómo recibir contenido del menú Compartir y replicarlo en otros proyectos |
+| [docs/guides/nivelacion-de-volumen.md](docs/guides/nivelacion-de-volumen.md) | Guía de estudio: decibelios, medición de sonoridad y compensación de volumen |
 | [CHANGELOG.md](CHANGELOG.md) | Historial de cambios |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Convenciones de código, commits y revisiones |
 
@@ -126,13 +135,15 @@ docs/                         Documentación técnica (ver abajo)
 - **Depende de un servicio externo** (tikwm.com) para resolver los enlaces de TikTok. Si cambia o deja de responder, la descarga falla; la reproducción no se ve afectada.
 - **Metadatos mínimos:** el título del audio es el nombre del archivo. No se escriben etiquetas (artista, portada) dentro del `.m4a`.
 - **Archivos heredados de la versión React Native:** eran videos MP4 guardados con extensión `.mp3`. Se reproducen bien, pero el teléfono también decodifica su video (más consumo de batería).
-- **Sin pruebas automatizadas** todavía.
+- **Pruebas parciales:** solo cubren las funciones puras (nombres de archivo, enlaces, búsqueda y fórmula de nivelación); no hay pruebas de integración.
 - **No apta para publicar sin ajustes:** el `applicationId` es `com.example.prueba_reproductor` y la versión *release* se firma con las claves de depuración. Ver [docs/development.md](docs/development.md#compilación-para-publicar).
 
 ## Hoja de ruta
 
 - [x] Recibir enlaces desde el menú **Compartir** de TikTok.
-- [ ] Pruebas unitarias (`cleanFileName`, `TikwmService` con cliente HTTP simulado, `LibraryController`).
+- [x] Nivelación de volumen entre audios.
+- [x] Buscar, renombrar, compartir y eliminar audios.
+- [ ] Más pruebas: `TikwmService` con cliente HTTP simulado y `LibraryController`.
 - [ ] Escribir etiquetas de título y autor en los archivos descargados.
 - [ ] Convertir los archivos heredados (video) a audio puro.
 - [ ] Identificador de aplicación y firma definitivos.

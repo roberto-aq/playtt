@@ -10,6 +10,7 @@ Un ADR documenta una decisión técnica importante: el contexto en que se tomó,
 | [0004](0004-extraccion-de-audio-nativa.md) | Extraer el audio con `MediaExtractor` + `MediaMuxer` (sin ffmpeg) | Aceptada |
 | [0005](0005-tikwm-como-proveedor.md) | Usar tikwm.com detrás de la interfaz `TikTokService` | Aceptada |
 | [0006](0006-recibir-enlaces-compartidos.md) | Recibir enlaces compartidos con código propio y `launchMode="singleTask"` | Aceptada |
+| [0007](0007-nivelacion-de-volumen.md) | Nivelación de volumen con medición propia y `AndroidLoudnessEnhancer` | Aceptada |
 
 ## Cómo agregar un ADR
 

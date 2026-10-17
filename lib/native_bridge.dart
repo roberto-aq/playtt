@@ -31,6 +31,50 @@ abstract final class NativeBridge {
     return saved ?? name;
   }
 
+  /// Renombra [path] dentro de la carpeta SAF [treeUri] (cuya ruta es
+  /// [folder]) y devuelve el nombre final que asignó Android.
+  static Future<String> renameInFolder({
+    required String treeUri,
+    required String folder,
+    required String path,
+    required String newName,
+  }) async {
+    final name = await _channel.invokeMethod<String>('renameInFolder', {
+      'treeUri': treeUri,
+      'folder': folder,
+      'path': path,
+      'newName': newName,
+    });
+    return name ?? newName;
+  }
+
+  /// Elimina [path] dentro de la carpeta SAF [treeUri].
+  static Future<void> deleteFromFolder({
+    required String treeUri,
+    required String folder,
+    required String path,
+  }) {
+    return _channel.invokeMethod('deleteFromFolder', {
+      'treeUri': treeUri,
+      'folder': folder,
+      'path': path,
+    });
+  }
+
+  /// Abre el menú "Compartir" del sistema para enviar el archivo a otra app.
+  static Future<void> shareFile(String path, String mimeType) {
+    return _channel.invokeMethod('shareFile', {'path': path, 'mime': mimeType});
+  }
+
+  /// Sonoridad de cada archivo en dBFS (`null` si no se pudo medir).
+  /// Decodifica el audio completo: puede tardar ~0,5 s por archivo.
+  static Future<List<double?>> measureLoudness(List<String> paths) async {
+    final result = await _channel.invokeListMethod<double?>('measureLoudness', {
+      'paths': paths,
+    });
+    return result ?? List.filled(paths.length, null);
+  }
+
   /// Extrae la pista de audio de un MP4 a un .m4a sin recodificar.
   static Future<void> extractAudio(String input, String output) {
     return _channel.invokeMethod('extractAudio', {

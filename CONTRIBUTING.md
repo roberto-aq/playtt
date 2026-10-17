@@ -59,6 +59,7 @@ Si un cambio introduce o reemplaza una decisión técnica relevante (nueva depen
 ## Lista de verificación
 
 - [ ] `flutter analyze` sin avisos.
+- [ ] `flutter test` pasa. Las funciones puras nuevas llevan su prueba en `test/`.
 - [ ] `dart format lib` aplicado.
 - [ ] Probado en un **teléfono físico** con una **compilación completa** si se tocó `android/` o `pubspec.yaml`.
 - [ ] Si cambia la reproducción: notificación, pantalla de bloqueo y botones Bluetooth siguen funcionando.

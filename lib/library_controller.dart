@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -7,19 +8,28 @@ import 'package:path/path.dart' as p;
 
 import 'audio_library.dart';
 import 'native_bridge.dart';
+import 'volume_normalizer.dart';
 
 /// Carpeta predeterminada. Android permite crear y escribir audio dentro de
 /// Music sin permisos especiales, así que sirve también para las descargas.
 const defaultMusicFolder = '/storage/emulated/0/Music/TikTok';
 
 class Track {
-  Track({required this.file, required this.modified, this.duration});
+  Track({
+    required this.file,
+    required this.modified,
+    this.duration,
+    this.loudness,
+  });
 
   final File file;
   final DateTime modified;
 
   /// `null` mientras se lee del archivo.
   Duration? duration;
+
+  /// Sonoridad en dBFS para la nivelación de volumen; `null` sin medir.
+  double? loudness;
 
   String get title => p.basenameWithoutExtension(file.path);
 }
@@ -33,11 +43,29 @@ class StorageException implements Exception {
 
 /// Estado compartido entre pestañas: la carpeta de música, sus canciones y el
 /// reproductor. La carpeta elegida es también donde se guardan las descargas.
+///
+/// Invariante: `tracks[i]` corresponde siempre a `player.audioSources[i]`.
+/// Toda operación que agrega, quita o reemplaza canciones actualiza ambas
+/// listas en la misma posición.
 class LibraryController extends ChangeNotifier {
+  LibraryController() {
+    normalizer.addListener(notifyListeners);
+    // Cada vez que cambia la canción, se ajusta su volumen.
+    _indexSub = player.currentIndexStream.listen((_) => _applyVolume());
+  }
+
   static const _folderKey = 'music_folder';
   static const _folderUriKey = 'music_folder_uri';
 
-  final player = AudioPlayer();
+  final _enhancer = AndroidLoudnessEnhancer();
+
+  late final player = AudioPlayer(
+    audioPipeline: AudioPipeline(androidAudioEffects: [_enhancer]),
+  );
+
+  late final normalizer = VolumeNormalizer(player, _enhancer);
+
+  late final StreamSubscription<int?> _indexSub;
 
   /// Ruta de la carpeta, para leer y reproducir los archivos.
   String? folder;
@@ -49,6 +77,19 @@ class LibraryController extends ChangeNotifier {
   List<Track> tracks = [];
   bool loading = false;
   bool loadingDurations = false;
+
+  /// Canción que está sonando (o seleccionada), si la hay.
+  Track? get currentTrack {
+    final i = player.currentIndex;
+    return i != null && i < tracks.length ? tracks[i] : null;
+  }
+
+  /// Prepara la nivelación de volumen y abre la última carpeta usada.
+  Future<void> start() async {
+    await _enhancer.setEnabled(true);
+    await normalizer.init();
+    await restore();
+  }
 
   /// Vuelve a abrir la última carpeta usada, sin empezar a reproducir.
   /// Si algo falla se arranca sin carpeta, como la primera vez.
@@ -86,7 +127,12 @@ class LibraryController extends ChangeNotifier {
       await Directory(path).create(recursive: true);
       final files = await findAudioFiles(path);
       final found = [
-        for (final f in files) Track(file: f, modified: await f.lastModified()),
+        for (final f in files)
+          Track(
+            file: f,
+            modified: await f.lastModified(),
+            loudness: await normalizer.cached(f),
+          ),
       ]..sort((a, b) => b.modified.compareTo(a.modified));
 
       final album = p.basename(path);
@@ -108,7 +154,7 @@ class LibraryController extends ChangeNotifier {
       loading = false;
       notifyListeners();
     }
-    _loadDurations(tracks);
+    _loadMetadata(tracks);
   }
 
   /// Vuelve a escanear la carpeta actual.
@@ -169,12 +215,136 @@ class LibraryController extends ChangeNotifier {
     player.play();
   }
 
+  /// Cambia el nombre visible de [track] a [newTitle] (sin extensión).
+  Future<void> renameTrack(Track track, String newTitle) async {
+    final title = newTitle.trim();
+    if (title.isEmpty) {
+      throw StorageException('El nombre no puede estar vacío.');
+    }
+    if (RegExp(r'[\\/:*?"<>|]').hasMatch(title)) {
+      throw StorageException(r'El nombre no puede tener \ / : * ? " < > |');
+    }
+    if (title == track.title) return;
+
+    final oldPath = track.file.path;
+    final dir = p.dirname(oldPath);
+    final newName = '$title${p.extension(oldPath)}';
+    // En el almacenamiento de Android "Audio" y "audio" son el mismo nombre:
+    // solo se valida si el cambio no es únicamente de mayúsculas.
+    final onlyCase = title.toLowerCase() == track.title.toLowerCase();
+    if (!onlyCase && await File(p.join(dir, newName)).exists()) {
+      throw StorageException('Ya existe un audio con ese nombre.');
+    }
+
+    String newPath;
+    try {
+      if (folderUri != null) {
+        final finalName = await NativeBridge.renameInFolder(
+          treeUri: folderUri!,
+          folder: folder!,
+          path: oldPath,
+          newName: newName,
+        );
+        newPath = p.join(dir, finalName);
+      } else {
+        newPath = (await track.file.rename(p.join(dir, newName))).path;
+      }
+    } catch (e) {
+      throw StorageException(
+        'No se pudo renombrar. Si la carpeta se eligió hace tiempo, '
+        'vuelve a elegirla en Configuración.',
+      );
+    }
+
+    await NativeBridge.scanFile(oldPath); // lo quita del índice del sistema
+    await NativeBridge.scanFile(newPath);
+
+    final renamed = Track(
+      file: File(newPath),
+      modified: track.modified,
+      duration: track.duration,
+      loudness: track.loudness,
+    );
+    await _replaceTrack(track, renamed);
+    await normalizer.moved(oldPath, renamed.file, renamed.loudness);
+  }
+
+  /// Borra el archivo de [track] del teléfono y lo quita de la lista.
+  Future<void> deleteTrack(Track track) async {
+    final index = tracks.indexOf(track);
+    if (index < 0) return;
+    final path = track.file.path;
+
+    try {
+      if (folderUri != null) {
+        await NativeBridge.deleteFromFolder(
+          treeUri: folderUri!,
+          folder: folder!,
+          path: path,
+        );
+      } else {
+        await track.file.delete();
+      }
+    } catch (e) {
+      throw StorageException(
+        'No se pudo eliminar. Si la carpeta se eligió hace tiempo, '
+        'vuelve a elegirla en Configuración.',
+      );
+    }
+
+    await NativeBridge.scanFile(path);
+    await player.removeAudioSourceAt(index);
+    tracks = [...tracks]..removeAt(index);
+    notifyListeners();
+    await normalizer.forget(path);
+  }
+
+  /// Abre el menú "Compartir" para enviar el audio a otra app.
+  Future<void> shareTrack(Track track) {
+    return NativeBridge.shareFile(
+      track.file.path,
+      _mimeTypes[p.extension(track.file.path).toLowerCase()] ?? 'audio/*',
+    );
+  }
+
+  /// Activa o desactiva la nivelación y la aplica a la canción actual.
+  Future<void> setNormalizeVolume(bool enabled) {
+    return normalizer.setEnabled(
+      enabled,
+      currentLoudness: currentTrack?.loudness,
+    );
+  }
+
   Future<void> _addTrack(File file) async {
     final track = Track(file: file, modified: await file.lastModified());
     await player.insertAudioSource(0, _sourceFor(track, p.basename(folder!)));
     tracks = [track, ...tracks];
     notifyListeners();
-    _loadDurations([track]);
+    _loadMetadata([track]);
+  }
+
+  /// Reemplaza [old] por [updated] en la misma posición de la lista y del
+  /// reproductor. Si era la canción actual, retoma desde el mismo punto.
+  Future<void> _replaceTrack(Track old, Track updated) async {
+    final index = tracks.indexOf(old);
+    if (index < 0) return;
+
+    final wasCurrent = player.currentIndex == index;
+    final position = player.position;
+    final wasPlaying = player.playing;
+
+    await player.removeAudioSourceAt(index);
+    await player.insertAudioSource(
+      index,
+      _sourceFor(updated, p.basename(folder!)),
+    );
+    tracks = [...tracks]..[index] = updated;
+    notifyListeners();
+
+    if (wasCurrent) {
+      await player.seek(position, index: index);
+      if (wasPlaying) player.play();
+    }
   }
 
   AudioSource _sourceFor(Track track, String album) {
@@ -184,6 +354,20 @@ class LibraryController extends ChangeNotifier {
       // bloqueo y los dispositivos Bluetooth.
       tag: MediaItem(id: track.file.path, title: track.title, album: album),
     );
+  }
+
+  Future<void> _applyVolume() => normalizer.apply(currentTrack?.loudness);
+
+  /// Primero las duraciones (rápido, para la lista) y después la sonoridad
+  /// (más lento, para la nivelación).
+  Future<void> _loadMetadata(List<Track> pending) async {
+    await _loadDurations(pending);
+    await normalizer.analyze([for (final t in pending) t.file], (file, value) {
+      for (final t in tracks) {
+        if (t.file.path == file.path) t.loudness = value;
+      }
+      if (currentTrack?.file.path == file.path) _applyVolume();
+    });
   }
 
   /// Lee las duraciones en lotes para que la lista se vaya completando.
@@ -216,10 +400,23 @@ class LibraryController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _indexSub.cancel();
+    normalizer.dispose();
     player.dispose();
     super.dispose();
   }
 }
+
+const _mimeTypes = {
+  '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+  '.oga': 'audio/ogg',
+  '.opus': 'audio/opus',
+  '.flac': 'audio/flac',
+};
 
 /// "nombre.m4a", o "nombre (2).m4a" si ya existe.
 Future<File> _uniqueFile(String folder, String fileName) async {

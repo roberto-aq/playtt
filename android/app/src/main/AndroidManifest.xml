@@ -74,6 +74,18 @@
             </intent-filter>
         </service>
 
+        <!-- Genera URIs content:// temporales para compartir audios con otras apps
+             sin exponer rutas del sistema de archivos (ver res/xml/file_paths.xml). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Recibe los botones multimedia (auriculares Bluetooth, cable, etc.) -->
         <receiver
             android:name="com.ryanheise.audioservice.MediaButtonReceiver"

@@ -42,3 +42,8 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // FileProvider, para compartir audios con otras apps (MainActivity.shareFile).
+    implementation("androidx.core:core:1.13.1")
+}

@@ -60,7 +60,8 @@ Ver [troubleshooting](troubleshooting.md#mensajes-de-consola-inofensivos).
 
 ```bash
 flutter analyze          # debe terminar en "No issues found!"
-dart format lib          # formato oficial
+dart format lib test     # formato oficial
+flutter test             # pruebas unitarias (test/)
 ```
 
 Las reglas de estilo vienen de `flutter_lints` (`analysis_options.yaml`). Detalles en [CONTRIBUTING.md](../CONTRIBUTING.md).

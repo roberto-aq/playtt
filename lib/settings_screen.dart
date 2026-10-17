@@ -109,6 +109,43 @@ class SettingsScreen extends StatelessWidget {
                     'carpeta. "Restaurar" vuelve a Música/TikTok.',
                     style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                   ),
+                  const SizedBox(height: 30),
+                  const Text(
+                    'Reproducción',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 15),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: SwitchListTile(
+                      value: library.normalizer.enabled,
+                      onChanged: library.setNormalizeVolume,
+                      activeThumbColor: AppColors.accent,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 6,
+                      ),
+                      secondary: const Icon(
+                        Icons.equalizer,
+                        color: AppColors.accent,
+                      ),
+                      title: const Text(
+                        'Nivelar volumen',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: const Text(
+                        'Iguala el volumen entre audios para que ninguno '
+                        'suene mucho más fuerte o más bajo que otro.',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

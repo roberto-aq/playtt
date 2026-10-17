@@ -15,6 +15,7 @@ Referencia de la comunicación entre Dart y Kotlin.
 |---|---|
 | `NATIVE_ERROR` | Excepción dentro de `inBackground` (extracción, escritura SAF, duraciones) |
 | `PICK_FAILED` | No se pudo abrir el selector o guardar el permiso de la carpeta |
+| `SHARE_FAILED` | No se pudo generar la URI o abrir el menú Compartir |
 
 - Un método desconocido responde `notImplemented`. En Dart eso llega como `MissingPluginException` y casi siempre significa que el APK instalado es anterior al código Dart (ver [troubleshooting](troubleshooting.md#missingpluginexception)).
 
@@ -44,6 +45,40 @@ Copia un archivo dentro de una carpeta SAF.
 | `mime` | String | Tipo MIME (`audio/mp4`) |
 
 **Devuelve:** el nombre final (`String`). Android agrega ` (1)` si ya existía uno igual. Si la copia falla, el documento creado se elimina.
+
+### `renameInFolder`
+Renombra un archivo dentro de una carpeta SAF.
+
+| Argumento | Tipo | Descripción |
+|---|---|---|
+| `treeUri` | String | URI de la carpeta |
+| `folder` | String | Ruta de la carpeta (para calcular la ruta relativa) |
+| `path` | String | Ruta del archivo a renombrar |
+| `newName` | String | Nombre nuevo con extensión |
+
+**Devuelve:** el nombre final asignado por Android. El documento se identifica como `"<volumen>:<ruta relativa>"` (formato del proveedor de almacenamiento local).
+
+### `deleteFromFolder`
+Elimina un archivo dentro de una carpeta SAF. Mismos argumentos `treeUri`, `folder` y `path`. **Devuelve:** `null`.
+
+### `shareFile`
+Abre el menú **Compartir** del sistema para enviar un archivo a otra app.
+
+| Argumento | Tipo |
+|---|---|
+| `path` | String |
+| `mime` | String (`audio/mp4`, `audio/mpeg`…) |
+
+Usa `FileProvider` (autoridad `<paquete>.fileprovider`, rutas en `res/xml/file_paths.xml`) para generar una URI `content://` con permiso de lectura temporal. Error: `SHARE_FAILED`.
+
+### `measureLoudness`
+Mide la sonoridad de varios archivos con `LoudnessAnalyzer` ([guía](guides/nivelacion-de-volumen.md#2-medir-loudnessanalyzerkt)).
+
+| Argumento | Tipo |
+|---|---|
+| `paths` | `List<String>` |
+
+**Devuelve:** `List<double?>` en dBFS, en el mismo orden. `null` si no se pudo decodificar o el audio es silencio. Dart lo llama en lotes de 4.
 
 ### `extractAudio`
 Copia la primera pista de audio de un MP4 a un `.m4a`, sin recodificar.

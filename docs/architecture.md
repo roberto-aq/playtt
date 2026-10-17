@@ -84,6 +84,33 @@ flowchart LR
 - La lista se carga con `preload: false`: no se decodifica nada hasta que el usuario toca una canción. Mientras el reproductor está `idle`, el mini reproductor permanece oculto.
 - Una descarga nueva se agrega con `insertAudioSource(0, …)`, sin interrumpir lo que está sonando.
 - `MainActivity` hereda de `AudioServiceActivity`. Eso hace que el motor de Flutter lo cree y lo guarde en caché `audio_service`, para que la música siga sonando sin la actividad (ver [ADR-0001](adr/0001-reproduccion-con-just-audio-background.md)).
+- **Invariante:** `tracks[i]` de `LibraryController` corresponde siempre a `player.audioSources[i]`. Agregar, eliminar o renombrar actualiza las dos listas en la misma posición. Renombrar la canción que suena reemplaza su `AudioSource` y retoma desde el mismo punto (puede notarse un corte breve).
+
+### Nivelación de volumen
+
+```mermaid
+flowchart LR
+    F[Archivo] -- una vez --> M[LoudnessAnalyzer.kt<br/>dBFS]
+    M --> C[(loudness_cache.json)]
+    C --> T[Track.loudness]
+    I[currentIndexStream] --> V[VolumeNormalizer.apply]
+    T --> V
+    V -- "más fuerte que −14 dBFS" --> SV[player.setVolume 0–1]
+    V -- "más bajo" --> LE[AndroidLoudnessEnhancer +dB]
+```
+
+`AudioPlayer` se crea con un `AudioPipeline` que incluye el `AndroidLoudnessEnhancer`. Fórmulas, límites y justificación en la [guía de nivelación](guides/nivelacion-de-volumen.md) y en el [ADR-0007](adr/0007-nivelacion-de-volumen.md).
+
+### Gestión de la biblioteca
+
+| Acción | Cómo se activa | Implementación |
+|---|---|---|
+| Buscar | Campo en el encabezado | Filtro en `LibraryScreen` sin distinguir mayúsculas ni tildes (`foldForSearch`). La lista filtrada conserva el índice real de cada canción para reproducirla |
+| Renombrar | Mantener pulsada → Renombrar | `LibraryController.renameTrack`: SAF (`renameInFolder`) si hay URI; si no, `File.rename` |
+| Eliminar | Mantener pulsada → Eliminar (con confirmación) | `deleteTrack`: SAF (`deleteFromFolder`) o `File.delete`, y luego `removeAudioSourceAt` |
+| Compartir | Mantener pulsada → Compartir | `shareTrack` → `FileProvider` + `ACTION_SEND` (lo inverso de [recibir contenido](guides/recibir-contenido-compartido.md)) |
+
+Las acciones viven en `track_actions.dart` (menú inferior y diálogos). Renombrar y eliminar usan el permiso SAF, así que funcionan también con archivos creados por otras apps dentro de la carpeta.
 
 ## Almacenamiento
 
