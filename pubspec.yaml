@@ -1,0 +1,25 @@
+name: prueba_reproductor
+description: "Reproductor de música local para Android con descarga de audio desde TikTok."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  just_audio: ^0.10.6
+  just_audio_background: ^0.0.1-beta.17
+  path: ^1.9.1
+  path_provider: ^2.1.6
+  permission_handler: 12.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
