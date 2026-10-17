@@ -28,8 +28,14 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   final TikTokService _tiktok = TikwmService();
 
+  static const _downloaderTab = 1;
+
   int _tab = 0;
   late final StreamSubscription<PlayerException> _errors;
+
+  /// Enlace recibido desde el menú "Compartir", pendiente de procesar por
+  /// la pestaña Descargar.
+  final _sharedLink = ValueNotifier<String?>(null);
 
   LibraryController get library => widget.library;
 
@@ -41,12 +47,33 @@ class _HomeShellState extends State<HomeShell> {
       showMessage(context, 'No se pudo reproducir: ${e.message ?? e.code}');
     });
     library.restore();
+    NativeBridge.listenSharedText(_onSharedText);
   }
 
   @override
   void dispose() {
     _errors.cancel();
+    _sharedLink.dispose();
     super.dispose();
+  }
+
+  /// Texto compartido desde otra app: si trae un enlace de TikTok, se abre
+  /// la pestaña Descargar y se procesa.
+  void _onSharedText(String text) {
+    if (!mounted) return;
+    final url = extractTikTokUrl(text);
+    if (url == null) {
+      showAppAlert(
+        context,
+        'Enlace no válido',
+        'Lo que compartiste no contiene un enlace de TikTok.',
+      );
+      return;
+    }
+    // Cierra el reproductor completo u otra pantalla abierta encima.
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    setState(() => _tab = _downloaderTab);
+    _sharedLink.value = url;
   }
 
   /// Pide permisos y carga una carpeta: la de [path] o, si es `null`, la que
@@ -73,7 +100,10 @@ class _HomeShellState extends State<HomeShell> {
       if (picked == null) return false;
       if (picked.path == null) {
         if (mounted) {
-          showMessage(context, 'Elige una carpeta del almacenamiento del teléfono.');
+          showMessage(
+            context,
+            'Elige una carpeta del almacenamiento del teléfono.',
+          );
         }
         return false;
       }
@@ -113,7 +143,11 @@ class _HomeShellState extends State<HomeShell> {
                           _openPlayer();
                         },
                       ),
-                      DownloaderScreen(library: library, service: _tiktok),
+                      DownloaderScreen(
+                        library: library,
+                        service: _tiktok,
+                        sharedLink: _sharedLink,
+                      ),
                       SettingsScreen(
                         library: library,
                         onChangeFolder: () async {

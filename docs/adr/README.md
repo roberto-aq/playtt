@@ -9,6 +9,7 @@ Un ADR documenta una decisión técnica importante: el contexto en que se tomó,
 | [0003](0003-escritura-con-storage-access-framework.md) | Escribir en la carpeta elegida mediante el Storage Access Framework | Aceptada |
 | [0004](0004-extraccion-de-audio-nativa.md) | Extraer el audio con `MediaExtractor` + `MediaMuxer` (sin ffmpeg) | Aceptada |
 | [0005](0005-tikwm-como-proveedor.md) | Usar tikwm.com detrás de la interfaz `TikTokService` | Aceptada |
+| [0006](0006-recibir-enlaces-compartidos.md) | Recibir enlaces compartidos con código propio y `launchMode="singleTask"` | Aceptada |
 
 ## Cómo agregar un ADR
 

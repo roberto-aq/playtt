@@ -103,8 +103,12 @@ class TikwmService implements TikTokService {
     }
 
     final data = body['data'];
-    if (body['code'] != 0 || data is! Map<String, dynamic> || data['play'] == null) {
-      throw TikTokException('No se pudo encontrar el video. Verifica el enlace.');
+    if (body['code'] != 0 ||
+        data is! Map<String, dynamic> ||
+        data['play'] == null) {
+      throw TikTokException(
+        'No se pudo encontrar el video. Verifica el enlace.',
+      );
     }
 
     final author = data['author'] as Map<String, dynamic>?;
@@ -140,12 +144,20 @@ class TikwmService implements TikTokService {
 
       try {
         await NativeBridge.extractAudio(mp4.path, m4a.path);
-        return DownloadedAudio(file: m4a, fileName: fileName, mimeType: 'audio/mp4');
+        return DownloadedAudio(
+          file: m4a,
+          fileName: fileName,
+          mimeType: 'audio/mp4',
+        );
       } on PlatformException {
         // Si el códec no se puede copiar tal cual, el MP4 completo igual se
         // reproduce como audio; se guarda con extensión .m4a.
         await mp4.rename(m4a.path);
-        return DownloadedAudio(file: m4a, fileName: fileName, mimeType: 'audio/mp4');
+        return DownloadedAudio(
+          file: m4a,
+          fileName: fileName,
+          mimeType: 'audio/mp4',
+        );
       }
     } catch (_) {
       if (await m4a.exists()) await m4a.delete();
@@ -196,6 +208,16 @@ class TikwmService implements TikTokService {
     if (url == null || url.isEmpty) return null;
     return url.startsWith('/') ? '$_api$url' : url;
   }
+}
+
+/// Busca un enlace de TikTok dentro de un texto compartido, que suele traer
+/// más cosas ("Mira este video de @usuario... https://vm.tiktok.com/xxx/").
+/// Devuelve `null` si no hay ninguno.
+String? extractTikTokUrl(String text) {
+  return RegExp(
+    r'https?://[^\s]*tiktok\.com[^\s]*',
+    caseSensitive: false,
+  ).firstMatch(text)?.group(0);
 }
 
 /// Convierte el título del video en un nombre de archivo válido: quita

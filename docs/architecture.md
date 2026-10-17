@@ -142,6 +142,7 @@ sequenceDiagram
 - **Extracción:** `MediaExtractor` lee la pista AAC del MP4 y `MediaMuxer` la escribe en un contenedor MP4 solo de audio (`.m4a`). No hay recodificación ([ADR-0004](adr/0004-extraccion-de-audio-nativa.md)).
 - **Respaldo:** si la pista no se puede copiar tal cual, se guarda el MP4 completo con extensión `.m4a`. Se reproduce igual, solo que es más pesado.
 - **Nombre del archivo:** `cleanFileName(title)` quita hashtags, menciones, emojis y caracteres inválidos, recorta a 60 caracteres y elimina puntos finales. Si queda vacío, se usa `tiktok_<id>`.
+- **Desde el menú Compartir:** `MainActivity` (con `launchMode="singleTask"`) recibe el `ACTION_SEND`. `HomeShell` extrae el enlace con `extractTikTokUrl`, abre la pestaña Descargar y se lo pasa por un `ValueNotifier`. La pantalla lo procesa como si el usuario lo hubiera pegado. Detalle en la [guía de contenido compartido](guides/recibir-contenido-compartido.md) y en el [ADR-0006](adr/0006-recibir-enlaces-compartidos.md).
 - **Intercambiable:** la pantalla solo conoce la interfaz `TikTokService`. Cambiar de proveedor implica escribir otra implementación y cambiar una línea en `home_shell.dart`.
 
 ## Permisos

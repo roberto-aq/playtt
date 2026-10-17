@@ -26,11 +26,11 @@ class LibraryScreen extends StatelessWidget {
                   child: CircularProgressIndicator(color: AppColors.accent),
                 )
               : library.tracks.isEmpty
-                  ? _EmptyState(
-                      hasFolder: library.folder != null,
-                      onChooseFolder: onChooseFolder,
-                    )
-                  : _TrackList(library: library, onTrackTap: onTrackTap),
+              ? _EmptyState(
+                  hasFolder: library.folder != null,
+                  onChooseFolder: onChooseFolder,
+                )
+              : _TrackList(library: library, onTrackTap: onTrackTap),
         ),
       ],
     );
@@ -250,8 +250,10 @@ class _EmptyState extends StatelessWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 textStyle: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

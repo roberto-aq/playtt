@@ -9,10 +9,15 @@ class DownloaderScreen extends StatefulWidget {
     super.key,
     required this.library,
     required this.service,
+    required this.sharedLink,
   });
 
   final LibraryController library;
   final TikTokService service;
+
+  /// Enlaces recibidos desde el menú "Compartir". La pantalla los procesa
+  /// automáticamente y vuelve a dejar el valor en `null`.
+  final ValueNotifier<String?> sharedLink;
 
   @override
   State<DownloaderScreen> createState() => _DownloaderScreenState();
@@ -36,12 +41,31 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
     super.initState();
     // Para mostrar u ocultar el botón de borrar.
     _urlController.addListener(() => setState(() {}));
+    widget.sharedLink.addListener(_onSharedLink);
+    // Por si el enlace llegó antes de que esta pantalla existiera.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onSharedLink());
   }
 
   @override
   void dispose() {
+    widget.sharedLink.removeListener(_onSharedLink);
     _urlController.dispose();
     super.dispose();
+  }
+
+  /// Pone el enlace compartido en el campo y lo procesa, como si el usuario
+  /// lo hubiera pegado y tocado "Procesar Link".
+  void _onSharedLink() {
+    final url = widget.sharedLink.value;
+    if (url == null || !mounted) return;
+    widget.sharedLink.value = null;
+
+    if (_processing || _downloading) {
+      showMessage(context, 'Espera a que termine el proceso actual.');
+      return;
+    }
+    _urlController.text = url;
+    _processLink();
   }
 
   Future<void> _processLink() async {
@@ -256,11 +280,14 @@ class _PinkButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.accent,
           foregroundColor: Colors.white,
-          disabledBackgroundColor:
-              loading ? AppColors.accent.withValues(alpha: 0.5) : const Color(0xFF555555),
+          disabledBackgroundColor: loading
+              ? AppColors.accent.withValues(alpha: 0.5)
+              : const Color(0xFF555555),
           disabledForegroundColor: Colors.white70,
           minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         child: loading
@@ -318,9 +345,8 @@ class _ResultCard extends StatelessWidget {
                       : Image.network(
                           video.coverUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const ColoredBox(
-                            color: AppColors.inputBorder,
-                          ),
+                          errorBuilder: (_, _, _) =>
+                              const ColoredBox(color: AppColors.inputBorder),
                         ),
                 ),
               ),

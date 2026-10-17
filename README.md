@@ -34,7 +34,8 @@ La app lee los audios de una carpeta del teléfono y los reproduce con controles
 - Mini reproductor flotante y reproductor a pantalla completa con barra de progreso, modo aleatorio y repetición (todo / una).
 
 ### Descarga desde TikTok
-- Acepta enlaces `vm.tiktok.com`, `vt.tiktok.com` y `www.tiktok.com/@usuario/video/…`.
+- **Desde el menú Compartir de TikTok:** *Compartir* → **Reproductor**, y la app se abre con el video ya procesado.
+- También se puede pegar el enlace a mano: acepta `vm.tiktok.com`, `vt.tiktok.com` y `www.tiktok.com/@usuario/video/…`.
 - Muestra portada, título y autor antes de descargar.
 - Extrae **solo la pista de audio**, sin recodificar (sin pérdida de calidad), a un archivo `.m4a`.
 - Guarda el archivo en la carpeta de la biblioteca, incluidas carpetas propias en la raíz del almacenamiento, gracias al permiso del selector de carpetas del sistema (Storage Access Framework, SAF).
@@ -113,6 +114,7 @@ docs/                         Documentación técnica (ver abajo)
 | [docs/development.md](docs/development.md) | Entorno, ejecución, depuración y compilación para publicar |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Errores conocidos y cómo resolverlos |
 | [docs/adr/](docs/adr/README.md) | Registro de decisiones de arquitectura |
+| [docs/guides/recibir-contenido-compartido.md](docs/guides/recibir-contenido-compartido.md) | Guía de estudio: cómo recibir contenido del menú Compartir y replicarlo en otros proyectos |
 | [CHANGELOG.md](CHANGELOG.md) | Historial de cambios |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Convenciones de código, commits y revisiones |
 
@@ -129,7 +131,7 @@ docs/                         Documentación técnica (ver abajo)
 
 ## Hoja de ruta
 
-- [ ] Recibir enlaces desde el menú **Compartir** de TikTok.
+- [x] Recibir enlaces desde el menú **Compartir** de TikTok.
 - [ ] Pruebas unitarias (`cleanFileName`, `TikwmService` con cliente HTTP simulado, `LibraryController`).
 - [ ] Escribir etiquetas de título y autor en los archivos descargados.
 - [ ] Convertir los archivos heredados (video) a audio puro.

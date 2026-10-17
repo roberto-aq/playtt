@@ -29,8 +29,7 @@ Future<bool> requestAudioPermission() async {
 
 /// Como [requestAudioPermission] pero sin mostrar ningún diálogo.
 Future<bool> hasAudioPermission() async {
-  return await Permission.audio.isGranted ||
-      await Permission.storage.isGranted;
+  return await Permission.audio.isGranted || await Permission.storage.isGranted;
 }
 
 /// Busca archivos de audio dentro de [dirPath], incluyendo subcarpetas.

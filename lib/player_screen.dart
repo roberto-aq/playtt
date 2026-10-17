@@ -255,7 +255,8 @@ class _BigPlayButton extends StatelessWidget {
       builder: (context, snapshot) {
         final state = snapshot.data;
         final processing = state?.processingState;
-        final loading = processing == ProcessingState.loading ||
+        final loading =
+            processing == ProcessingState.loading ||
             processing == ProcessingState.buffering;
         final playing = state?.playing ?? false;
 
@@ -340,8 +341,9 @@ class _SeekBarState extends State<_SeekBar> {
                 Slider(
                   max: max > 0 ? max : 1,
                   value: max > 0 ? value : 0,
-                  onChanged:
-                      max > 0 ? (v) => setState(() => _dragValue = v) : null,
+                  onChanged: max > 0
+                      ? (v) => setState(() => _dragValue = v)
+                      : null,
                   onChangeEnd: (v) {
                     widget.player.seek(Duration(milliseconds: v.round()));
                     setState(() => _dragValue = null);

@@ -97,8 +97,9 @@ class MiniPlayer extends StatelessWidget {
                                   icon: Icon(
                                     playing ? Icons.pause : Icons.play_arrow,
                                   ),
-                                  onPressed:
-                                      playing ? player.pause : player.play,
+                                  onPressed: playing
+                                      ? player.pause
+                                      : player.play,
                                 );
                               },
                             ),

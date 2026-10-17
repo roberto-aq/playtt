@@ -4,6 +4,7 @@ import android.content.Intent
 import android.media.MediaMetadataRetriever
 import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Bundle
 import android.util.Log
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -23,14 +24,59 @@ class MainActivity : AudioServiceActivity() {
          * Flutter (y esta respuesta) siguen vivos igual.
          */
         var pendingPick: MethodChannel.Result? = null
+
+        /**
+         * Texto recibido con "Compartir" que Flutter todavía no leyó. Se guarda
+         * porque puede llegar antes de que Dart esté listo para escucharlo.
+         */
+        var pendingSharedText: String? = null
+
+        /** Canal activo, para avisar a Flutter cuando llega un texto compartido. */
+        var channel: MethodChannel? = null
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Arranque en frío: la app se abrió desde el menú Compartir. Si la
+        // actividad se está recreando (savedInstanceState != null), su intent
+        // es el mismo de antes y ya se procesó.
+        if (savedInstanceState == null) handleShareIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Arranque en caliente: la app ya estaba abierta (launchMode="singleTask").
+        handleShareIntent(intent)
+    }
+
+    /** Guarda el texto de un intent ACTION_SEND y avisa a Flutter. */
+    private fun handleShareIntent(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND) return
+        if (intent.type?.startsWith("text/") != true) return
+        // Abrir la app desde Recientes repite el último intent: no es un envío nuevo.
+        if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return
+
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return
+        Log.d(TAG, "share: texto recibido (${text.length} caracteres)")
+        pendingSharedText = text
+        // Si Dart aún no registró su handler, el aviso se pierde, pero no
+        // importa: al arrancar, Dart pide el texto pendiente con takeSharedText.
+        channel?.invokeMethod("sharedTextAvailable", null)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "prueba_reproductor/media")
+        val methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "prueba_reproductor/media")
+        channel = methodChannel
+        methodChannel
             .setMethodCallHandler { call, result ->
                 when (call.method) {
+                    "takeSharedText" -> {
+                        // Entrega el texto una sola vez.
+                        result.success(pendingSharedText)
+                        pendingSharedText = null
+                    }
                     "pickFolder" -> {
                         // Si quedó una selección anterior sin respuesta, se da por cancelada.
                         pendingPick?.success(null)

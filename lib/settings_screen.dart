@@ -88,7 +88,9 @@ class SettingsScreen extends StatelessWidget {
                                   ? 'Seleccionar Carpeta'
                                   : 'Cambiar Carpeta',
                               color: AppColors.accent,
-                              onPressed: library.loading ? null : onChangeFolder,
+                              onPressed: library.loading
+                                  ? null
+                                  : onChangeFolder,
                             ),
                             if (folder != defaultMusicFolder)
                               _SmallButton(

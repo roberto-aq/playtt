@@ -68,7 +68,10 @@ class LibraryController extends ChangeNotifier {
         return;
       }
       debugPrint('Restaurar: abriendo $saved');
-      await openFolder(saved, uri: await NativeBridge.getSetting(_folderUriKey));
+      await openFolder(
+        saved,
+        uri: await NativeBridge.getSetting(_folderUriKey),
+      );
     } catch (e) {
       debugPrint('No se pudo restaurar la carpeta guardada: $e');
     }
@@ -83,15 +86,13 @@ class LibraryController extends ChangeNotifier {
       await Directory(path).create(recursive: true);
       final files = await findAudioFiles(path);
       final found = [
-        for (final f in files)
-          Track(file: f, modified: await f.lastModified()),
+        for (final f in files) Track(file: f, modified: await f.lastModified()),
       ]..sort((a, b) => b.modified.compareTo(a.modified));
 
       final album = p.basename(path);
-      await player.setAudioSources(
-        [for (final t in found) _sourceFor(t, album)],
-        preload: false,
-      );
+      await player.setAudioSources([
+        for (final t in found) _sourceFor(t, album),
+      ], preload: false);
 
       folder = path;
       folderUri = uri;
@@ -199,8 +200,9 @@ class LibraryController extends ChangeNotifier {
         ]);
         for (var j = 0; j < chunk.length; j++) {
           final ms = millis[j];
-          chunk[j].duration =
-              ms == null ? Duration.zero : Duration(milliseconds: ms);
+          chunk[j].duration = ms == null
+              ? Duration.zero
+              : Duration(milliseconds: ms);
         }
         notifyListeners();
       }

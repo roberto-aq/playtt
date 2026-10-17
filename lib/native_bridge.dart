@@ -7,7 +7,9 @@ abstract final class NativeBridge {
   /// Abre el selector de carpetas del sistema y guarda el permiso de
   /// escritura sobre la elegida. `null` si el usuario cancela.
   static Future<PickedFolder?> pickFolder() async {
-    final result = await _channel.invokeMapMethod<String, String?>('pickFolder');
+    final result = await _channel.invokeMapMethod<String, String?>(
+      'pickFolder',
+    );
     if (result == null) return null;
     return PickedFolder(uri: result['uri']!, path: result['path']);
   }
@@ -48,6 +50,28 @@ abstract final class NativeBridge {
       'paths': paths,
     });
     return result ?? List.filled(paths.length, null);
+  }
+
+  /// Entrega a [onText] cada texto que otra app comparte con esta (menú
+  /// "Compartir"): el que abrió la app, si lo hubo, y los que lleguen
+  /// mientras está abierta.
+  ///
+  /// Kotlin guarda el texto y solo avisa que hay uno nuevo; Dart lo pide con
+  /// `takeSharedText`. Así no se pierde aunque llegue antes de que Dart esté
+  /// escuchando (ver docs/guides/recibir-contenido-compartido.md).
+  static Future<void> listenSharedText(
+    void Function(String text) onText,
+  ) async {
+    Future<void> take() async {
+      final text = await _channel.invokeMethod<String>('takeSharedText');
+      if (text != null && text.trim().isNotEmpty) onText(text);
+    }
+
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'sharedTextAvailable') await take();
+    });
+    // Texto que llegó antes de registrar el handler (arranque en frío).
+    await take();
   }
 
   static Future<String?> getSetting(String key) {

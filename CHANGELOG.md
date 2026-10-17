@@ -6,6 +6,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+### Agregado
+- La app aparece en el menú **Compartir** de otras apps como "Extraer audio". Al compartir un TikTok, se abre en Descargar con el video ya procesado ([ADR-0006](docs/adr/0006-recibir-enlaces-compartidos.md)).
+- Guía de estudio [Recibir contenido desde el menú "Compartir"](docs/guides/recibir-contenido-compartido.md).
+
+### Cambiado
+- `MainActivity` usa `launchMode="singleTask"`: los enlaces compartidos y el toque en la notificación reutilizan siempre la misma pantalla.
+
 ## [0.1.0] - 2026-10-17
 
 Primera versión funcional de la reescritura en Flutter.

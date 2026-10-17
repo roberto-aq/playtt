@@ -71,6 +71,17 @@ Lee la duración de varios archivos con `MediaMetadataRetriever`.
 
 **Devuelve:** `List<int?>` en milisegundos, en el mismo orden. `null` si un archivo no se pudo leer. Dart lo llama en lotes de 20.
 
+### `takeSharedText`
+Devuelve el texto recibido desde el menú **Compartir** de otra app y lo borra, de modo que se entrega **una sola vez**.
+
+| | |
+|---|---|
+| Argumentos | ninguno |
+| Devuelve | `String?` (`null` si no hay texto pendiente) |
+| Dart | Usado internamente por `NativeBridge.listenSharedText(onText)` |
+
+Dart lo llama al arrancar y cada vez que recibe `sharedTextAvailable` (ver abajo). Explicación del diseño en la [guía de contenido compartido](guides/recibir-contenido-compartido.md#2-el-problema-de-sincronización-con-flutter).
+
 ### `getSetting` / `setSetting`
 Ajustes de texto en las `SharedPreferences` nativas (archivo `app_settings`).
 
@@ -80,6 +91,16 @@ Ajustes de texto en las `SharedPreferences` nativas (archivo `app_settings`).
 | `setSetting` | `key`, `value` (`null` borra la clave) | `null` |
 
 Claves en uso: `music_folder` y `music_folder_uri`. El motivo de no usar `shared_preferences` está en el [ADR-0002](adr/0002-ajustes-con-canal-nativo.md).
+
+## Llamadas de Kotlin hacia Dart
+
+Kotlin también puede llamar a Dart por el mismo canal. Dart las atiende con un **único** `setMethodCallHandler`, registrado en `NativeBridge.listenSharedText`.
+
+| Método | Argumentos | Cuándo se envía |
+|---|---|---|
+| `sharedTextAvailable` | ninguno | Llegó un `ACTION_SEND` con texto (en `onCreate` u `onNewIntent`). Es solo un aviso: Dart lee el texto con `takeSharedText` |
+
+> ⚠️ Un canal admite un solo handler en Dart. No llames a `setMethodCallHandler` desde otro archivo: agrega el nuevo `case` en `NativeBridge`.
 
 ## Agregar un método nuevo
 

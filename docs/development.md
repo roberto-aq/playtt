@@ -49,7 +49,7 @@ Reproductor|Restaurar|Elegir carpeta
 
 | Prefijo | Origen | Qué informa |
 |---|---|---|
-| `Reproductor` | Kotlin (`Log.d`) | Apertura y resultado del selector de carpetas |
+| `Reproductor` | Kotlin (`Log.d`) | Selector de carpetas (`pickFolder:`) y texto compartido recibido (`share:`) |
 | `Restaurar:` | `LibraryController.restore` | Por qué se recuperó (o no) la carpeta al arrancar |
 | `Elegir carpeta:` | `HomeShell._openFolder` | Ruta elegida, audios cargados o error |
 
