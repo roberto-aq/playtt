@@ -1,4 +1,4 @@
-# Reproductor
+# PlayTT
 
 Reproductor de música local para Android, hecho en Flutter, con descarga de audio desde TikTok.
 
@@ -34,12 +34,13 @@ La app lee los audios de una carpeta del teléfono y los reproduce con controles
 - Reproducción en segundo plano.
 - **Controles del sistema:** notificación con anterior / pausa / siguiente, pantalla de bloqueo y botones de auriculares Bluetooth o con cable.
 - Mini reproductor flotante y reproductor a pantalla completa con barra de progreso, modo aleatorio y repetición (todo / una).
+- **Retoma donde quedaste:** al abrir la app, la última canción queda lista en la misma posición.
 - **Nivelación de volumen:** iguala el volumen entre audios para que ninguno suene mucho más fuerte o más bajo que otro (se puede desactivar en Configuración).
 
 ### Descarga desde TikTok
-- **Desde el menú Compartir de TikTok:** *Compartir* → **Reproductor**, y la app se abre con el video ya procesado.
+- **Desde el menú Compartir de TikTok:** *Compartir* → **PlayTT**, y la app se abre con el video ya procesado.
 - También se puede pegar el enlace a mano: acepta `vm.tiktok.com`, `vt.tiktok.com` y `www.tiktok.com/@usuario/video/…`.
-- Muestra portada, título y autor antes de descargar.
+- Muestra portada, título y autor antes de descargar, y avisa si ese video ya está en la biblioteca.
 - Extrae **solo la pista de audio**, sin recodificar (sin pérdida de calidad), a un archivo `.m4a`.
 - Guarda el archivo en la carpeta de la biblioteca, incluidas carpetas propias en la raíz del almacenamiento, gracias al permiso del selector de carpetas del sistema (Storage Access Framework, SAF).
 
@@ -96,6 +97,8 @@ lib/
 ├── downloader_screen.dart    Pestaña Descargar
 ├── settings_screen.dart      Pestaña Configuración
 ├── track_actions.dart        Menú de una canción: renombrar, compartir, eliminar
+├── playback_state.dart       Qué se guarda para retomar la reproducción
+├── download_history.dart     Videos ya descargados (aviso de duplicados)
 ├── volume_normalizer.dart    Nivelación de volumen (caché y compensación)
 ├── mini_player.dart          Barra de reproducción flotante
 └── player_screen.dart        Reproductor a pantalla completa
@@ -136,17 +139,18 @@ docs/                         Documentación técnica (ver abajo)
 - **Metadatos mínimos:** el título del audio es el nombre del archivo. No se escriben etiquetas (artista, portada) dentro del `.m4a`.
 - **Archivos heredados de la versión React Native:** eran videos MP4 guardados con extensión `.mp3`. Se reproducen bien, pero el teléfono también decodifica su video (más consumo de batería).
 - **Pruebas parciales:** solo cubren las funciones puras (nombres de archivo, enlaces, búsqueda y fórmula de nivelación); no hay pruebas de integración.
-- **No apta para publicar sin ajustes:** el `applicationId` es `com.example.prueba_reproductor` y la versión *release* se firma con las claves de depuración. Ver [docs/development.md](docs/development.md#compilación-para-publicar).
+- **Firma de la versión release:** hay que crear una clave propia una vez antes de distribuir. Sin ella, se firma con la clave de depuración. Ver [docs/development.md](docs/development.md#compilación-para-publicar).
 
 ## Hoja de ruta
 
 - [x] Recibir enlaces desde el menú **Compartir** de TikTok.
 - [x] Nivelación de volumen entre audios.
 - [x] Buscar, renombrar, compartir y eliminar audios.
+- [x] Retomar la reproducción donde quedó.
+- [x] Aviso de descargas duplicadas.
+- [x] Identidad propia (PlayTT, `com.playtt.app`, ícono) y firma configurable.
+- [ ] Crear la clave de firma definitiva (manual, ver [docs/development.md](docs/development.md#1-crear-la-clave-de-firma-una-sola-vez)).
 - [ ] Más pruebas: `TikwmService` con cliente HTTP simulado y `LibraryController`.
-- [ ] Escribir etiquetas de título y autor en los archivos descargados.
-- [ ] Convertir los archivos heredados (video) a audio puro.
-- [ ] Identificador de aplicación y firma definitivos.
 
 ---
 

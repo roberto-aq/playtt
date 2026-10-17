@@ -12,9 +12,11 @@ Future<void> main() async {
   // sistema (controles de auriculares Bluetooth, pantalla de bloqueo) y la
   // notificación con anterior / pausa / siguiente.
   await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.example.prueba_reproductor.audio',
+    androidNotificationChannelId: 'com.playtt.app.audio',
     androidNotificationChannelName: 'Reproducción de audio',
     androidNotificationOngoing: true,
+    // Silueta blanca para la barra de estado (res/drawable/ic_stat_playtt.xml).
+    androidNotificationIcon: 'drawable/ic_stat_playtt',
   );
 
   runApp(MainApp(library: LibraryController()));
@@ -28,7 +30,7 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Reproductor',
+      title: 'PlayTT',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       home: HomeShell(library: library),

@@ -68,21 +68,61 @@ Las reglas de estilo vienen de `flutter_lints` (`analysis_options.yaml`). Detall
 
 ## Compilación para publicar
 
+### Identidad de la app (ya configurada)
+
+| Elemento | Valor | Dónde se cambia |
+|---|---|---|
+| Nombre visible | **PlayTT** | `android:label` en `AndroidManifest.xml` |
+| Identificador | `com.playtt.app` | `applicationId` y `namespace` en `android/app/build.gradle.kts`, y el paquete de los `.kt` |
+| Versión | `1.0.0+1` | `version:` en `pubspec.yaml` (`nombre+código`) |
+| Ícono | `assets/branding/playtt_icon.png` | Reemplaza la imagen y ejecuta `dart run flutter_launcher_icons` |
+| Ícono de la notificación | `res/drawable/ic_stat_playtt.xml` | Vector de un solo color; se conserva en release gracias a `res/raw/keep.xml` |
+
+> ⚠️ **El identificador es permanente.** Si cambia, Android y Google Play lo tratan como otra app: los usuarios no reciben la actualización y pierden sus ajustes. Por eso el nombre interno del paquete Dart (`prueba_reproductor`) y el canal nativo (`prueba_reproductor/media`) no se renombraron: no son visibles y cambiarlos no aporta nada.
+
+### 1. Crear la clave de firma (una sola vez)
+
+Android solo instala una **actualización** si está firmada con la misma clave que la versión instalada. Esta clave te identifica como autor: **si la pierdes, no podrás actualizar la app**. Guárdala junto con sus contraseñas en un lugar seguro (gestor de contraseñas y copia de respaldo), nunca en el repositorio.
+
+`keytool` viene con el JDK de Android Studio (`C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe` en Windows). Desde la carpeta `android/`:
+
 ```bash
-flutter build apk --release        # APK único
-flutter build appbundle --release  # AAB para Google Play
+keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 ```
 
-Antes de distribuir la app fuera de tu teléfono:
+Te pedirá una contraseña y algunos datos (nombre, organización…).
 
-1. **Identificador:** cambia `applicationId` y `namespace` en `android/app/build.gradle.kts` (hoy `com.example.prueba_reproductor`). Mueve el paquete de `MainActivity.kt` en consecuencia.
-2. **Firma:** hoy `release` usa las claves de depuración. Crea un keystore y configúralo:
-   ```bash
-   keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
-   ```
-   Referencia: <https://docs.flutter.dev/deployment/android#sign-the-app>. **Nunca** subas el keystore ni sus contraseñas al repositorio.
-3. **Versión:** incrementa `version:` en `pubspec.yaml` (`nombre+código`, p. ej. `1.0.0+1`) y registra los cambios en `CHANGELOG.md`.
-4. **Nombre e ícono:** `android:label` en `AndroidManifest.xml` e íconos en `android/app/src/main/res/mipmap-*`.
+### 2. Configurar `key.properties`
+
+Copia `android/key.properties.example` como `android/key.properties` y complétalo:
+
+```properties
+storePassword=la contraseña que elegiste
+keyPassword=la contraseña que elegiste
+keyAlias=upload
+storeFile=../upload-keystore.jks
+```
+
+`android/app/build.gradle.kts` lo lee automáticamente. Ni `key.properties` ni `*.jks` se suben: están en `android/.gitignore`.
+
+> Sin `key.properties`, la versión release se firma con la clave de **depuración** y Gradle muestra un aviso. Sirve para probar, no para distribuir: ese APK no se podría actualizar después con uno firmado de verdad.
+
+### 3. Compilar
+
+```bash
+flutter build apk --release --split-per-abi   # para instalar directamente (un APK por tipo de procesador, ~3 veces más livianos)
+flutter build apk --release                   # un único APK para todos los teléfonos (~50 MB)
+flutter build appbundle --release             # AAB para subir a Google Play
+```
+
+Los archivos quedan en `build/app/outputs/`. Para pasar la app a otra persona sin Google Play, envíale `app-arm64-v8a-release.apk`, que sirve para casi todos los teléfonos actuales. Tendrá que permitir "instalar apps de origen desconocido".
+
+### 4. Antes de cada versión nueva
+
+1. Sube `version:` en `pubspec.yaml`. El número después del `+` **siempre debe aumentar** (`1.0.0+1` → `1.0.1+2`); Android rechaza actualizaciones con un código igual o menor.
+2. Pasa la sección **[Sin publicar]** de `CHANGELOG.md` a la nueva versión, con fecha.
+3. `flutter analyze` y `flutter test` sin errores.
+4. Prueba la versión release en un teléfono real: `flutter run --release`.
 
 ## Dependencias
 

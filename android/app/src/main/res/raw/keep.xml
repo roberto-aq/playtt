@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El ícono de la notificación se busca por nombre desde Dart
+     (androidNotificationIcon), así que el reductor de recursos de la versión
+     release no ve que se usa. Esto evita que lo elimine. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_playtt" />

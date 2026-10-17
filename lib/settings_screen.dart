@@ -92,7 +92,7 @@ class SettingsScreen extends StatelessWidget {
                                   ? null
                                   : onChangeFolder,
                             ),
-                            if (folder != defaultMusicFolder)
+                            if (folder != library.defaultFolder)
                               _SmallButton(
                                 label: 'Restaurar',
                                 color: AppColors.danger,

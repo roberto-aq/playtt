@@ -1,0 +1,11 @@
+# Plantilla de android/key.properties (la clave de firma de la versión release).
+# 1. Copia este archivo como "key.properties" en esta misma carpeta (android/).
+# 2. Completa los valores. NUNCA subas key.properties ni el .jks al repositorio:
+#    ya están en android/.gitignore.
+# Guía completa: docs/development.md → "Compilación para publicar".
+
+storePassword=CONTRASEÑA_DEL_ALMACEN
+keyPassword=CONTRASEÑA_DE_LA_CLAVE
+keyAlias=upload
+# Ruta relativa a android/app/ (o absoluta)
+storeFile=../upload-keystore.jks

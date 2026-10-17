@@ -3,7 +3,7 @@
 **Estado:** Aceptada
 
 ## Contexto
-Para descargar un audio, el usuario tenía que copiar el enlace en TikTok, abrir la app, ir a Descargar, pegarlo y procesarlo. El objetivo es reducirlo a TikTok → *Compartir* → **Reproductor**.
+Para descargar un audio, el usuario tenía que copiar el enlace en TikTok, abrir la app, ir a Descargar, pegarlo y procesarlo. El objetivo es reducirlo a TikTok → *Compartir* → **PlayTT**.
 
 Hay tres restricciones:
 - **Sincronización:** Kotlin recibe el intent antes de que Dart registre sus handlers. Un aviso enviado en ese momento se pierde.

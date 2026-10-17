@@ -1,4 +1,4 @@
-package com.example.prueba_reproductor
+package com.playtt.app
 
 import android.content.Context
 import android.net.Uri

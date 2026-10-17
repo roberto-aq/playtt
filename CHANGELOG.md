@@ -6,6 +6,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Sin publicar]
 
+## [1.0.0] - 2026-10-17
+
+Primera versión lista para distribuir.
+
 ### Agregado
 - La app aparece en el menú **Compartir** de otras apps como "Extraer audio". Al compartir un TikTok, se abre en Descargar con el video ya procesado ([ADR-0006](docs/adr/0006-recibir-enlaces-compartidos.md)).
 - Guía de estudio [Recibir contenido desde el menú "Compartir"](docs/guides/recibir-contenido-compartido.md).
@@ -13,9 +17,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - Búsqueda en la Biblioteca que ignora mayúsculas y tildes.
 - Menú al mantener pulsada una canción: **Renombrar**, **Compartir** y **Eliminar**.
 - Primeras pruebas unitarias (`test/`).
+- **Retomar donde quedaste:** al abrir la app vuelve la última canción en pausa, en la misma posición y con los mismos modos aleatorio y de repetición.
+- **Aviso de duplicados:** al procesar un TikTok que ya está en la biblioteca, la tarjeta lo indica y el botón cambia a "Descargar otra vez".
 
 ### Cambiado
 - `MainActivity` usa `launchMode="singleTask"`: los enlaces compartidos y el toque en la notificación reutilizan siempre la misma pantalla.
+- **Identidad propia:** nombre **PlayTT**, identificador `com.playtt.app` (antes `com.example.prueba_reproductor`) e ícono de PlayTT. Al instalarla, el teléfono la trata como una app nueva: hay que volver a elegir la carpeta.
+- Ícono propio de una sola silueta para la notificación de música.
+- La versión release se firma con la clave de `android/key.properties` si existe (plantilla en `key.properties.example`).
+- La carpeta predeterminada `Music/TikTok` se obtiene de Android en lugar de usar una ruta fija.
 
 ## [0.1.0] - 2026-10-17
 
@@ -44,4 +54,5 @@ Primera versión funcional de la reescritura en Flutter.
 - La respuesta del selector de carpetas se perdía si el sistema recreaba la actividad mientras estaba abierto.
 
 [Sin publicar]: #sin-publicar
+[1.0.0]: #100---2026-10-17
 [0.1.0]: #010---2026-10-17

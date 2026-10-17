@@ -86,6 +86,14 @@ flowchart LR
 - `MainActivity` hereda de `AudioServiceActivity`. Eso hace que el motor de Flutter lo cree y lo guarde en caché `audio_service`, para que la música siga sonando sin la actividad (ver [ADR-0001](adr/0001-reproduccion-con-just-audio-background.md)).
 - **Invariante:** `tracks[i]` de `LibraryController` corresponde siempre a `player.audioSources[i]`. Agregar, eliminar o renombrar actualiza las dos listas en la misma posición. Renombrar la canción que suena reemplaza su `AudioSource` y retoma desde el mismo punto (puede notarse un corte breve).
 
+### Retomar la reproducción
+
+`LibraryController` guarda un `PlaybackState` (ruta de la canción, posición, modo aleatorio y modo de repetición) en el ajuste nativo `playback_state`:
+- cada 5 segundos mientras suena, al pausar, al cambiar de canción o de modo, y al pasar la app a segundo plano (`AppLifecycleListener` en `HomeShell`);
+- nunca mientras se carga una carpeta, porque en ese momento el índice actual y la lista no coinciden.
+
+Al arrancar, `restore()` lee el estado **antes** de abrir la carpeta (abrirla cambia la canción actual y lo sobrescribiría). Luego lo pasa como `initialIndex`/`initialPosition` a `setAudioSources` con `preload: true`, así la canción queda cargada en pausa y el mini reproductor aparece listo. Se guarda la **ruta** y no el índice, porque el orden cambia al descargar, renombrar o eliminar audios.
+
 ### Nivelación de volumen
 
 ```mermaid
@@ -169,6 +177,7 @@ sequenceDiagram
 - **Extracción:** `MediaExtractor` lee la pista AAC del MP4 y `MediaMuxer` la escribe en un contenedor MP4 solo de audio (`.m4a`). No hay recodificación ([ADR-0004](adr/0004-extraccion-de-audio-nativa.md)).
 - **Respaldo:** si la pista no se puede copiar tal cual, se guarda el MP4 completo con extensión `.m4a`. Se reproduce igual, solo que es más pesado.
 - **Nombre del archivo:** `cleanFileName(title)` quita hashtags, menciones, emojis y caracteres inválidos, recorta a 60 caracteres y elimina puntos finales. Si queda vacío, se usa `tiktok_<id>`.
+- **Duplicados:** `DownloadHistory` guarda `id del video → ruta del archivo` en `downloads.json` y se actualiza al renombrar o eliminar. Al procesar un enlace, `LibraryController.findDownloaded` busca por id y, para descargas anteriores al historial, por nombre de archivo. Solo avisa: el usuario puede descargar otra vez.
 - **Desde el menú Compartir:** `MainActivity` (con `launchMode="singleTask"`) recibe el `ACTION_SEND`. `HomeShell` extrae el enlace con `extractTikTokUrl`, abre la pestaña Descargar y se lo pasa por un `ValueNotifier`. La pantalla lo procesa como si el usuario lo hubiera pegado. Detalle en la [guía de contenido compartido](guides/recibir-contenido-compartido.md) y en el [ADR-0006](adr/0006-recibir-enlaces-compartidos.md).
 - **Intercambiable:** la pantalla solo conoce la interfaz `TikTokService`. Cambiar de proveedor implica escribir otra implementación y cambiar una línea en `home_shell.dart`.
 

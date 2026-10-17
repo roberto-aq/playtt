@@ -7,12 +7,15 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:path/path.dart' as p;
 
 import 'audio_library.dart';
+import 'download_history.dart';
 import 'native_bridge.dart';
+import 'playback_state.dart';
 import 'volume_normalizer.dart';
 
-/// Carpeta predeterminada. Android permite crear y escribir audio dentro de
-/// Music sin permisos especiales, así que sirve también para las descargas.
-const defaultMusicFolder = '/storage/emulated/0/Music/TikTok';
+/// Subcarpeta de Music usada como carpeta predeterminada. Android permite
+/// crear y escribir audio dentro de Music sin permisos especiales, así que
+/// sirve también para las descargas.
+const _defaultSubfolder = 'TikTok';
 
 class Track {
   Track({
@@ -50,12 +53,40 @@ class StorageException implements Exception {
 class LibraryController extends ChangeNotifier {
   LibraryController() {
     normalizer.addListener(notifyListeners);
-    // Cada vez que cambia la canción, se ajusta su volumen.
-    _indexSub = player.currentIndexStream.listen((_) => _applyVolume());
+    _subscriptions = [
+      // Cada vez que cambia la canción se ajusta su volumen y se recuerda.
+      player.currentIndexStream.listen((_) {
+        _applyVolume();
+        savePlaybackState();
+      }),
+      // Mientras suena, se guarda la posición cada pocos segundos; al pausar,
+      // de inmediato.
+      player.playingStream.listen((playing) {
+        _saveTimer?.cancel();
+        _saveTimer = playing
+            ? Timer.periodic(_saveInterval, (_) => savePlaybackState())
+            : null;
+        if (!playing) savePlaybackState();
+      }),
+      player.shuffleModeEnabledStream.listen((_) => savePlaybackState()),
+      player.loopModeStream.listen((_) => savePlaybackState()),
+    ];
   }
 
   static const _folderKey = 'music_folder';
   static const _folderUriKey = 'music_folder_uri';
+  static const _playbackKey = 'playback_state';
+  static const _saveInterval = Duration(seconds: 5);
+
+  /// Videos ya descargados, para avisar de duplicados.
+  final downloads = DownloadHistory();
+
+  /// Carpeta predeterminada (botón "Restaurar"): Music/TikTok. La ruta real
+  /// de Music la informa Android en [start]; este valor es el de casi todos
+  /// los teléfonos, por si la consulta falla.
+  String defaultFolder = '/storage/emulated/0/Music/$_defaultSubfolder';
+
+  Timer? _saveTimer;
 
   final _enhancer = AndroidLoudnessEnhancer();
 
@@ -65,7 +96,7 @@ class LibraryController extends ChangeNotifier {
 
   late final normalizer = VolumeNormalizer(player, _enhancer);
 
-  late final StreamSubscription<int?> _indexSub;
+  late final List<StreamSubscription<Object?>> _subscriptions;
 
   /// Ruta de la carpeta, para leer y reproducir los archivos.
   String? folder;
@@ -84,17 +115,32 @@ class LibraryController extends ChangeNotifier {
     return i != null && i < tracks.length ? tracks[i] : null;
   }
 
-  /// Prepara la nivelación de volumen y abre la última carpeta usada.
+  /// Prepara la nivelación de volumen y el historial, y abre la última
+  /// carpeta usada.
   Future<void> start() async {
     await _enhancer.setEnabled(true);
     await normalizer.init();
+    await downloads.load();
+    try {
+      defaultFolder = p.join(
+        await NativeBridge.getMusicDirectory(),
+        _defaultSubfolder,
+      );
+    } catch (e) {
+      debugPrint('No se pudo consultar la carpeta Music: $e');
+    }
     await restore();
   }
 
-  /// Vuelve a abrir la última carpeta usada, sin empezar a reproducir.
-  /// Si algo falla se arranca sin carpeta, como la primera vez.
+  /// Vuelve a abrir la última carpeta usada y deja lista (en pausa) la
+  /// canción donde se quedó. Si algo falla se arranca sin carpeta.
   Future<void> restore() async {
     try {
+      // Se lee antes de abrir la carpeta: abrirla cambia la canción actual
+      // y eso sobrescribiría lo guardado.
+      final resume = PlaybackState.decode(
+        await NativeBridge.getSetting(_playbackKey),
+      );
       final saved = await NativeBridge.getSetting(_folderKey);
       if (saved == null) {
         debugPrint('Restaurar: no hay carpeta guardada.');
@@ -112,6 +158,7 @@ class LibraryController extends ChangeNotifier {
       await openFolder(
         saved,
         uri: await NativeBridge.getSetting(_folderUriKey),
+        resume: resume,
       );
     } catch (e) {
       debugPrint('No se pudo restaurar la carpeta guardada: $e');
@@ -120,7 +167,12 @@ class LibraryController extends ChangeNotifier {
 
   /// Carga todas las canciones de [path] (más recientes primero) y la guarda
   /// como carpeta de la app. [uri] es el permiso de escritura del selector.
-  Future<void> openFolder(String path, {String? uri}) async {
+  /// Con [resume], deja seleccionada esa canción en esa posición.
+  Future<void> openFolder(
+    String path, {
+    String? uri,
+    PlaybackState? resume,
+  }) async {
     loading = true;
     notifyListeners();
     try {
@@ -136,9 +188,29 @@ class LibraryController extends ChangeNotifier {
       ]..sort((a, b) => b.modified.compareTo(a.modified));
 
       final album = p.basename(path);
-      await player.setAudioSources([
-        for (final t in found) _sourceFor(t, album),
-      ], preload: false);
+      final sources = [for (final t in found) _sourceFor(t, album)];
+      final resumeIndex = resume == null
+          ? -1
+          : found.indexWhere((t) => t.file.path == resume.path);
+
+      if (resumeIndex >= 0) {
+        debugPrint('Restaurar: retomando ${found[resumeIndex].title}');
+        try {
+          // preload: true carga la canción (en pausa) para que el mini
+          // reproductor aparezca listo para continuar.
+          await player.setAudioSources(
+            sources,
+            initialIndex: resumeIndex,
+            initialPosition: resume!.position,
+          );
+        } on PlayerException {
+          await player.setAudioSources(sources, preload: false);
+        }
+        await player.setShuffleModeEnabled(resume!.shuffle);
+        await player.setLoopMode(resume.loopMode);
+      } else {
+        await player.setAudioSources(sources, preload: false);
+      }
 
       folder = path;
       folderUri = uri;
@@ -164,10 +236,14 @@ class LibraryController extends ChangeNotifier {
 
   /// Copia [source] a la carpeta de la biblioteca como [fileName] y lo agrega
   /// al inicio de la lista sin cortar lo que esté sonando.
+  ///
+  /// [sourceId] identifica el contenido de origen (el id del video) para
+  /// detectar duplicados con [findDownloaded].
   Future<File> saveDownloadedAudio(
     File source, {
     required String fileName,
     required String mimeType,
+    String? sourceId,
   }) async {
     final dir = folder;
     if (dir == null) {
@@ -207,7 +283,43 @@ class LibraryController extends ChangeNotifier {
     await NativeBridge.scanFile(savedPath);
     final file = File(savedPath);
     await _addTrack(file);
+    if (sourceId != null) await downloads.add(sourceId, savedPath);
     return file;
+  }
+
+  /// Archivo ya descargado del contenido [sourceId], si existe.
+  ///
+  /// Para audios descargados antes de que existiera el historial, también
+  /// compara con [title] (el nombre de archivo que se le daría): si en la
+  /// biblioteca hay uno igual, probablemente es el mismo.
+  Future<File?> findDownloaded(String sourceId, {String? title}) async {
+    final path = await downloads.existingPath(sourceId);
+    if (path != null) return File(path);
+    if (title == null || title.isEmpty) return null;
+    final wanted = title.toLowerCase();
+    for (final track in tracks) {
+      if (track.title.toLowerCase() == wanted) return track.file;
+    }
+    return null;
+  }
+
+  /// Guarda la canción actual y su posición para retomarla al reabrir la app.
+  Future<void> savePlaybackState() async {
+    // Mientras se carga una carpeta, el índice actual y la lista no coinciden.
+    if (loading) return;
+    final track = currentTrack;
+    if (track == null) return;
+    final state = PlaybackState(
+      path: track.file.path,
+      position: player.position,
+      shuffle: player.shuffleModeEnabled,
+      loopMode: player.loopMode,
+    );
+    try {
+      await NativeBridge.setSetting(_playbackKey, state.encode());
+    } catch (e) {
+      debugPrint('No se pudo guardar la posición: $e');
+    }
   }
 
   Future<void> playTrack(int index) async {
@@ -267,6 +379,8 @@ class LibraryController extends ChangeNotifier {
     );
     await _replaceTrack(track, renamed);
     await normalizer.moved(oldPath, renamed.file, renamed.loudness);
+    await downloads.moved(oldPath, newPath);
+    await savePlaybackState(); // por si era la canción actual
   }
 
   /// Borra el archivo de [track] del teléfono y lo quita de la lista.
@@ -297,6 +411,7 @@ class LibraryController extends ChangeNotifier {
     tracks = [...tracks]..removeAt(index);
     notifyListeners();
     await normalizer.forget(path);
+    await downloads.removed(path);
   }
 
   /// Abre el menú "Compartir" para enviar el audio a otra app.
@@ -400,7 +515,10 @@ class LibraryController extends ChangeNotifier {
 
   @override
   void dispose() {
-    _indexSub.cancel();
+    _saveTimer?.cancel();
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
     normalizer.dispose();
     player.dispose();
     super.dispose();

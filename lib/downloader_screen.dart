@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 
 import 'library_controller.dart';
 import 'theme.dart';
@@ -27,6 +28,9 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
   final _urlController = TextEditingController();
 
   TikTokVideo? _video;
+
+  /// Nombre del audio si este video ya se había descargado.
+  String? _existingTitle;
   bool _processing = false;
   bool _downloading = false;
 
@@ -83,10 +87,22 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
     setState(() {
       _processing = true;
       _video = null;
+      _existingTitle = null;
     });
     try {
       final video = await widget.service.fetchVideo(url);
-      if (mounted) setState(() => _video = video);
+      final existing = await widget.library.findDownloaded(
+        video.id,
+        title: cleanFileName(video.title),
+      );
+      if (mounted) {
+        setState(() {
+          _video = video;
+          _existingTitle = existing == null
+              ? null
+              : p.basenameWithoutExtension(existing.path);
+        });
+      }
     } catch (e) {
       if (mounted) showAppAlert(context, 'Error', '$e');
     } finally {
@@ -136,6 +152,7 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
           audio.file,
           fileName: audio.fileName,
           mimeType: audio.mimeType,
+          sourceId: video.id,
         );
       } finally {
         await audio.delete();
@@ -144,6 +161,7 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
       if (!mounted) return;
       setState(() {
         _video = null;
+        _existingTitle = null;
         _urlController.clear();
       });
       await showAppAlert(
@@ -197,6 +215,7 @@ class _DownloaderScreenState extends State<DownloaderScreen> {
                 downloading: _downloading,
                 progress: _progress,
                 status: _status,
+                existingTitle: _existingTitle,
                 onExtract: _extractAudio,
               ),
           ],
@@ -309,6 +328,7 @@ class _ResultCard extends StatelessWidget {
     required this.downloading,
     required this.progress,
     required this.status,
+    required this.existingTitle,
     required this.onExtract,
   });
 
@@ -316,6 +336,9 @@ class _ResultCard extends StatelessWidget {
   final bool downloading;
   final double? progress;
   final String status;
+
+  /// Nombre del audio si ya se había descargado; `null` si es nuevo.
+  final String? existingTitle;
   final VoidCallback onExtract;
 
   @override
@@ -375,6 +398,10 @@ class _ResultCard extends StatelessWidget {
               ),
             ],
           ),
+          if (existingTitle != null) ...[
+            const SizedBox(height: 15),
+            _DuplicateNotice(title: existingTitle!),
+          ],
           const SizedBox(height: 20),
           FilledButton(
             onPressed: downloading ? null : onExtract,
@@ -411,14 +438,59 @@ class _ResultCard extends StatelessWidget {
                       ),
                     ],
                   )
-                : const Row(
+                : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.music_note_outlined),
-                      SizedBox(width: 10),
-                      Text('Extraer Audio Completo'),
+                      const Icon(Icons.music_note_outlined),
+                      const SizedBox(width: 10),
+                      Text(
+                        existingTitle == null
+                            ? 'Extraer Audio Completo'
+                            : 'Descargar otra vez',
+                      ),
                     ],
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Aviso de que el video ya está en la biblioteca.
+class _DuplicateNotice extends StatelessWidget {
+  const _DuplicateNotice({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    const amber = Color(0xFFFFB74D);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: amber.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: amber.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline, color: amber, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  const TextSpan(text: 'Ya tienes este audio: '),
+                  TextSpan(
+                    text: title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              style: const TextStyle(color: amber, fontSize: 13),
+            ),
           ),
         ],
       ),

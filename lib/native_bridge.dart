@@ -118,6 +118,12 @@ abstract final class NativeBridge {
     await take();
   }
 
+  /// Ruta de la carpeta pública Music del teléfono, según Android
+  /// (normalmente /storage/emulated/0/Music).
+  static Future<String> getMusicDirectory() async {
+    return (await _channel.invokeMethod<String>('getMusicDirectory'))!;
+  }
+
   static Future<String?> getSetting(String key) {
     return _channel.invokeMethod<String>('getSetting', {'key': key});
   }

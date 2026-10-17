@@ -2,7 +2,7 @@
 
 > **Objetivo:** que tu app aparezca en el menú **Compartir** de otras apps y reciba lo que el usuario comparte (texto, enlaces, imágenes, archivos).
 >
-> **Caso real de este proyecto:** en TikTok → *Compartir* → **Reproductor**, la app se abre en la pestaña Descargar con el video ya procesado.
+> **Caso real de este proyecto:** en TikTok → *Compartir* → **PlayTT**, la app se abre en la pestaña Descargar con el video ya procesado.
 >
 > **Requisitos para seguirla:** saber qué es una `Activity` y haber usado un `MethodChannel` de Flutter (si no, ver [native-bridge.md](../native-bridge.md)).
 
@@ -319,10 +319,10 @@ En la consola, filtra por `share:` para ver `share: texto recibido (N caracteres
 
 ```bash
 # Arranque en frío
-adb shell am force-stop com.example.prueba_reproductor
+adb shell am force-stop com.playtt.app
 adb shell am start -a android.intent.action.SEND -t text/plain \
   --es android.intent.extra.TEXT "'Mira esto https://vt.tiktok.com/ZSgju8QE6/'" \
-  -n com.example.prueba_reproductor/.MainActivity
+  -n com.playtt.app/.MainActivity
 
 # Arranque en caliente: el mismo comando con la app ya abierta
 ```
@@ -330,7 +330,7 @@ adb shell am start -a android.intent.action.SEND -t text/plain \
 Para ver en qué apps puede aparecer tu actividad, o depurar por qué no aparece:
 
 ```bash
-adb shell dumpsys package com.example.prueba_reproductor | grep -A5 "android.intent.action.SEND"
+adb shell dumpsys package com.playtt.app | grep -A5 "android.intent.action.SEND"
 ```
 
 ---

@@ -1,4 +1,4 @@
-package com.example.prueba_reproductor
+package com.playtt.app
 
 import android.media.AudioFormat
 import android.media.MediaCodec

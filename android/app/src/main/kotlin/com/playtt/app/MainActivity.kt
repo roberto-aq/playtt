@@ -1,4 +1,4 @@
-package com.example.prueba_reproductor
+package com.playtt.app
 
 import android.content.ClipData
 import android.content.Intent
@@ -6,6 +6,7 @@ import android.media.MediaMetadataRetriever
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
 import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceActivity
@@ -147,6 +148,11 @@ class MainActivity : AudioServiceActivity() {
                         inBackground(result) { paths.map(::readDurationMs) }
                     }
                     // Ajustes simples guardados con las SharedPreferences nativas.
+                    "getMusicDirectory" -> {
+                        @Suppress("DEPRECATION") // sigue siendo la forma de obtener la ruta
+                        val music = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+                        result.success(music.absolutePath)
+                    }
                     "getSetting" -> {
                         val key = call.argument<String>("key")!!
                         result.success(settings().getString(key, null))

@@ -33,6 +33,10 @@ class _HomeShellState extends State<HomeShell> {
   int _tab = 0;
   late final StreamSubscription<PlayerException> _errors;
 
+  /// Guarda la posición al pasar a segundo plano (p. ej. antes de que el
+  /// sistema cierre la app).
+  late final AppLifecycleListener _lifecycle;
+
   /// Enlace recibido desde el menú "Compartir", pendiente de procesar por
   /// la pestaña Descargar.
   final _sharedLink = ValueNotifier<String?>(null);
@@ -47,12 +51,14 @@ class _HomeShellState extends State<HomeShell> {
       showMessage(context, 'No se pudo reproducir: ${e.message ?? e.code}');
     });
     library.start();
+    _lifecycle = AppLifecycleListener(onHide: library.savePlaybackState);
     NativeBridge.listenSharedText(_onSharedText);
   }
 
   @override
   void dispose() {
     _errors.cancel();
+    _lifecycle.dispose();
     _sharedLink.dispose();
     super.dispose();
   }
@@ -163,7 +169,7 @@ class _HomeShellState extends State<HomeShell> {
                           }
                         },
                         onRestore: () async {
-                          if (await _openFolder(path: defaultMusicFolder) &&
+                          if (await _openFolder(path: library.defaultFolder) &&
                               context.mounted) {
                             showAppAlert(
                               context,
