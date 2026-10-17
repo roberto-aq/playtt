@@ -224,6 +224,8 @@ class _UrlField extends StatelessWidget {
       enabled: enabled,
       keyboardType: TextInputType.url,
       autocorrect: false,
+      // Igual que el buscador: tocar fuera le quita el foco y cierra el teclado.
+      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       style: const TextStyle(fontSize: 16),
       decoration: InputDecoration(
         hintText: 'https://vm.tiktok.com/...',
@@ -239,10 +241,7 @@ class _UrlField extends StatelessWidget {
         ),
         suffixIcon: controller.text.isEmpty
             ? null
-            : IconButton(
-                icon: const Icon(Icons.cancel, color: AppColors.textSecondary),
-                onPressed: controller.clear,
-              ),
+            : ClearFieldButton(onPressed: controller.clear),
       ),
     );
   }

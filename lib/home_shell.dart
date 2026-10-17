@@ -118,6 +118,9 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _openPlayer() {
+    // Sin foco activo al salir, no hay nada que restaurar (ni teclado que
+    // reaparezca) al volver del reproductor.
+    FocusManager.instance.primaryFocus?.unfocus();
     Navigator.of(context).push(PlayerScreen.route(library));
   }
 

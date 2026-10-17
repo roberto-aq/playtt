@@ -169,33 +169,37 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      textInputAction: TextInputAction.search,
-      decoration: InputDecoration(
-        hintText: 'Buscar en la biblioteca',
-        hintStyle: const TextStyle(color: AppColors.textSecondary),
-        prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
-        suffixIcon: ListenableBuilder(
-          listenable: controller,
-          builder: (context, _) => controller.text.isEmpty
-              ? const SizedBox.shrink()
-              : IconButton(
-                  icon: const Icon(Icons.close, size: 20),
+    // Se reconstruye con cada letra para mostrar u ocultar la ⓧ.
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) => TextField(
+        controller: controller,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        // Tocar fuera (una canción, las pestañas, el mini reproductor) le
+        // quita el foco. Si no, Flutter se lo devuelve al volver de otra
+        // pantalla y el teclado reaparece solo.
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        decoration: InputDecoration(
+          hintText: 'Buscar en la biblioteca',
+          hintStyle: const TextStyle(color: AppColors.textSecondary),
+          prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+          suffixIcon: controller.text.isEmpty
+              ? null
+              : ClearFieldButton(
                   onPressed: () {
                     controller.clear();
                     onChanged('');
                   },
                 ),
-        ),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.08),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 10),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.08),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
@@ -239,6 +243,8 @@ class _TrackList extends StatelessWidget {
         final current = snapshot.data;
         return ListView.builder(
           padding: const EdgeInsets.all(16),
+          // Deslizar la lista también cierra el teclado.
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           itemCount: visible.length,
           itemBuilder: (context, position) {
             final i = visible[position];

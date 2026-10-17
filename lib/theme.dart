@@ -65,6 +65,23 @@ class GradientBackground extends StatelessWidget {
   }
 }
 
+/// Botón ⓧ para vaciar un campo de texto. Se usa como `suffixIcon` y solo
+/// debe mostrarse cuando el campo tiene texto.
+class ClearFieldButton extends StatelessWidget {
+  const ClearFieldButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Borrar',
+      icon: const Icon(Icons.cancel, color: AppColors.textSecondary),
+      onPressed: onPressed,
+    );
+  }
+}
+
 /// Diálogo simple estilo Android, como el "Guardado" del diseño original.
 Future<void> showAppAlert(BuildContext context, String title, String message) {
   return showDialog<void>(
