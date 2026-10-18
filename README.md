@@ -11,6 +11,7 @@ La app lee los audios de una carpeta del teléfono y los reproduce con controles
 ## Contenido
 
 - [Funcionalidades](#funcionalidades)
+- [Descargar e instalar](#descargar-e-instalar)
 - [Requisitos](#requisitos)
 - [Inicio rápido](#inicio-rápido)
 - [Estructura del proyecto](#estructura-del-proyecto)
@@ -43,6 +44,18 @@ La app lee los audios de una carpeta del teléfono y los reproduce con controles
 - Muestra portada, título y autor antes de descargar, y avisa si ese video ya está en la biblioteca.
 - Extrae **solo la pista de audio**, sin recodificar (sin pérdida de calidad), a un archivo `.m4a`.
 - Guarda el archivo en la carpeta de la biblioteca, incluidas carpetas propias en la raíz del almacenamiento, gracias al permiso del selector de carpetas del sistema (Storage Access Framework, SAF).
+
+---
+
+## Descargar e instalar
+
+1. Entra a **[Releases](../../releases/latest)** y descarga el APK:
+   - `app-arm64-v8a-release.apk`: para casi todos los teléfonos actuales (recomendado).
+   - `app-release.apk`: universal, más pesado. Úsalo si el anterior no se instala.
+2. Abre el archivo en el teléfono. Android pedirá permitir **"instalar apps de origen desconocido"** para la app desde la que lo abriste (Archivos, Chrome, WhatsApp…).
+3. Abre **PlayTT** y elige la carpeta donde está tu música.
+
+Requiere Android 7.0 o superior. Las actualizaciones se instalan encima de la versión anterior, sin perder los ajustes.
 
 ---
 

@@ -117,6 +117,16 @@ flutter build appbundle --release             # AAB para subir a Google Play
 
 Los archivos quedan en `build/app/outputs/`. Para pasar la app a otra persona sin Google Play, envíale `app-arm64-v8a-release.apk`, que sirve para casi todos los teléfonos actuales. Tendrá que permitir "instalar apps de origen desconocido".
 
+### Publicar en GitHub Releases
+
+1. Compila: `flutter build apk --release --split-per-abi` y `flutter build apk --release`.
+2. En GitHub: **Releases → Draft a new release**.
+   - **Tag:** `v1.0.0` (debe coincidir con `version:` en `pubspec.yaml`).
+   - **Título:** `PlayTT 1.0.0`.
+   - **Descripción:** los puntos de esa versión en `CHANGELOG.md`, escritos para el usuario.
+3. Adjunta `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` y `app-release.apk`.
+4. **Publish release.** El enlace "Releases" del README siempre apunta a la última.
+
 ### 4. Antes de cada versión nueva
 
 1. Sube `version:` en `pubspec.yaml`. El número después del `+` **siempre debe aumentar** (`1.0.0+1` → `1.0.1+2`); Android rechaza actualizaciones con un código igual o menor.
